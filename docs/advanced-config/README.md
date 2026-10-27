@@ -103,6 +103,40 @@ starship init fish | source
 enable_transience
 ```
 
+## TransientPrompt and TransientRightPrompt in Zsh
+
+It is possible to replace the previous-printed prompt with a custom string. This
+is useful in cases where all the prompt information is not always needed. To enable
+this, run `enable_transience` in the shell session. To make it permanent, put
+this statement in your `~/.zshrc` after `eval "$(starship init zsh)"`. Transience
+can be disabled on-the-fly with `disable_transience`.
+
+Transience requires Zsh 5.3 or higher.
+
+- By default, the left side of input gets replaced with a bold-green `❯`. To customize this,
+  define a new function called `starship_transient_prompt_func`. For example, to
+  display Starship's `character` module here, you would do
+
+```zsh
+starship_transient_prompt_func() {
+  starship module character --status="${STARSHIP_CMD_STATUS:-}" --keymap="${KEYMAP:-}"
+}
+eval "$(starship init zsh)"
+enable_transience
+```
+
+- By default, the right side of input is empty. To customize this, define a new
+  function called `starship_transient_rprompt_func`. For example, to display
+  the time at which the last command was started here, you would do
+
+```zsh
+starship_transient_rprompt_func() {
+  starship module time
+}
+eval "$(starship init zsh)"
+enable_transience
+```
+
 ## TransientPrompt and TransientRightPrompt in Bash
 
 The [Ble.sh](https://github.com/akinomyoga/ble.sh) framework at v0.4 or higher allows you to replace

@@ -32,6 +32,12 @@ prompt_starship_precmd() {
     # Save the status, because subsequent commands in this function will change $?
     STARSHIP_CMD_STATUS=$? STARSHIP_PIPE_STATUS=(${pipestatus[@]})
 
+    # Restore the full prompt if the previous one was made transient
+    if (( ${+__starship_saved_prompt} )); then
+        PROMPT=$__starship_saved_prompt RPROMPT=$__starship_saved_rprompt
+        unset __starship_saved_prompt __starship_saved_rprompt
+    fi
+
     # Calculate duration if a command was executed
     if (( ${+STARSHIP_START_TIME} )); then
         # If an arithmetic expression evaluates to 0, its exit status is 1:
@@ -85,6 +91,43 @@ else
     }
     zle -N zle-keymap-select starship_zle-keymap-select-wrapped;
 fi
+
+# Transience related functions
+# Run a user transient prompt function and wrap its color sequences in %{ %},
+# so that zsh does not count them in the prompt width (`starship module` does not wrap them).
+__starship_transient_wrap() {
+    setopt localoptions extendedglob
+    local out
+    out=$("$@")
+    print -rn -- "${out//(#b)($'\e'\[[0-9;]#m)/%{$match[1]%\}}"
+}
+
+# Replace the prompt of the line just accepted with a short transient prompt.
+# The full prompt is restored in prompt_starship_precmd.
+starship_zle-line-finish() {
+    __starship_saved_prompt=$PROMPT __starship_saved_rprompt=$RPROMPT
+    if (( ${+functions[starship_transient_prompt_func]} )); then
+        PROMPT='$(__starship_transient_wrap starship_transient_prompt_func)'
+    else
+        PROMPT='%B%F{green}❯%f%b '
+    fi
+    if (( ${+functions[starship_transient_rprompt_func]} )); then
+        RPROMPT='$(__starship_transient_wrap starship_transient_rprompt_func)'
+    else
+        RPROMPT=''
+    fi
+    zle reset-prompt
+}
+
+enable_transience() {
+    autoload -Uz add-zle-hook-widget
+    add-zle-hook-widget zle-line-finish starship_zle-line-finish
+}
+
+disable_transience() {
+    autoload -Uz add-zle-hook-widget
+    add-zle-hook-widget -d zle-line-finish starship_zle-line-finish
+}
 
 export STARSHIP_SHELL="zsh"
 
